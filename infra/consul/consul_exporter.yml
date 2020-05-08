@@ -1,0 +1,72 @@
+---
+
+- hosts: "{{ hosts | default('jumpbox') }}"
+  vars:
+    consul_exporter_version: 0.6.0
+  tasks:
+    - name: test connection
+      ping:
+
+    - name: create group Node exporter
+      become: yes
+      group:
+        name: node_exporter
+        state: present
+
+    - name: create user Node exporter
+      user:
+        name: node_exporter
+        group: node_exporter
+        createhome: no
+        system: yes
+        state: present
+      become: yes
+
+    - name: create opt directory for consul
+      file:
+        path: /opt/consul
+        state: directory
+      become: yes
+
+    - name: download consul exporter
+      get_url:
+        url: https://github.com/prometheus/consul_exporter/releases/download/v{{ consul_exporter_version }}/consul_exporter-{{ consul_exporter_version }}.linux-amd64.tar.gz
+        dest: /opt/consul
+      become: yes
+
+    - name: unarchive consul exporter
+      unarchive:
+        remote_src: yes
+        src: /opt/consul/consul_exporter-{{ consul_exporter_version }}.linux-amd64.tar.gz
+        dest: /opt/consul
+      become: yes
+
+    - name: Move file consul exporter
+      command: mv /opt/consul/consul_exporter-0.6.0.linux-amd64/consul_exporter /usr/local/bin/
+      become: yes
+
+    - name: install unit file to systemd
+      template:
+        src: consul_exporter.j2
+        dest: /etc/systemd/system/consul_exporter.service
+      become: yes
+
+    - name: configure systemd to use service
+      systemd:
+        daemon_reload: yes
+        enabled: yes
+        state: started
+        name: consul_exporter.service
+      become: yes
+
+    - name: Remove consul exporter zip
+      file:
+        path: /opt/consul/consul_exporter-{{ consul_exporter_version }}.linux-amd64.tar.gz
+        state: absent
+      become: yes
+
+    - name: Remove consul exporter folder
+      file:
+        path: /opt/consul/consul_exporter-{{ consul_exporter_version }}.linux-amd64
+        state: absent
+      become: yes

@@ -1,0 +1,14 @@
+---
+
+- hosts: all
+  gather_facts: yes
+
+  tasks:
+    - name: stop ntp service
+      shell: service ntp stop
+
+    - name: resync time
+      shell: ntpd -gq
+
+    - name: start ntp service
+      shell: service ntp start 

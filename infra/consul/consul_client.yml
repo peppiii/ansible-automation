@@ -1,0 +1,59 @@
+---
+
+- hosts: "{{ hosts | default('jumpbox') }}"
+  gather_facts: yes
+  vars:
+    consul_version: 1.6.2
+  tasks:
+    - name: test connectionnn
+      ping:
+
+    - name: install unzip
+      apt: name=unzip update_cache=yes state=latest
+
+    - name: create opt client for consul
+      file:
+        path: /etc/consul.d/client/
+        state: directory
+      become: yes
+
+    - name: move file consul client
+      template:
+        src: consul_client.j2
+        dest: /etc/consul.d/client/config.json
+      become: yes
+    
+    - name: create data dir client consul
+      file:
+        path: /var/consul
+        state: directory
+      become: yes
+
+    - name: download consul 
+      get_url:
+        url: https://releases.hashicorp.com/consul/{{ consul_version }}/consul_{{ consul_version }}_linux_amd64.zip
+        dest: /tmp
+      become: yes
+
+    - name: unarchive consul
+      unarchive:
+        remote_src: yes
+        src: /tmp/consul_{{ consul_version }}_linux_amd64.zip
+        dest: /usr/local/bin/
+      become: yes
+
+    - name: install unit file to systemd
+      template:
+        src: consul_client_service.j2
+        dest: /etc/systemd/system/consul-client.service
+      become: yes
+  
+    - name: configure systemd to use service
+      systemd:
+        daemon_reload: yes
+        enabled: yes
+        state: started
+        name: consul-client.service
+      become: yes
+
+    

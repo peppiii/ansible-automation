@@ -1,0 +1,12 @@
+#!/bin/sh
+if [ "$PAM_TYPE" != "close_session" ] && [ "$PAM_RHOST" != "jumpbox" ]; then
+        url="#" channel="#login-ssh"
+        host="`hostname`"
+        jam="`date +%r`"
+        tanggal="`date +%Y-%m-%d`"
+    content="\"attachments\": [ { \"mrkdwn_in\": [\"text\", \"fallback\"], \"fallback\": \"SSH login: $PAM_USER connected to
+    \`$host\`\", \"text\": \"SSH login to \`$host\`\", \"fields\": [ { \"title\": \"User\", \"value\": \"$PAM_USER\",
+    \"short\": true }, { \"title\": \"Jam\", \"value\": \"$jam\", \"short\": true }, { \"title\": \"IP Address\", \"value\": \"$PAM_RHOST\", \"short\": true }, { \"title\": \"Tanggal\", \"value\": \"$tanggal\", \"short\": true } ], \"color\": \"#F35A00\" } ]"
+    curl -X POST --data-urlencode "payload={\"channel\": \"$channel\", \"mrkdwn\": true, \"username\": \"ssh-bot\", $content,
+    \"icon_emoji\": \":computer:\"}" $url
+fi

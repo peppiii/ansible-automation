@@ -1,0 +1,72 @@
+---
+
+- hosts: "{{ hosts | default('jumpbox') }}"
+  vars:
+    sentinel_exporter_version: 1.3.0
+  tasks:
+    - name: test connection
+      ping:
+
+    - name: create group Node exporter
+      become: yes
+      group:
+        name: node_exporter
+        state: present
+
+    - name: create user Node exporter
+      user:
+        name: node_exporter
+        group: node_exporter
+        createhome: no
+        system: yes
+        state: present
+      become: yes
+
+    - name: create opt directory for sentinel
+      file:
+        path: /opt/sentinel
+        state: directory
+      become: yes
+
+    - name: download sentinel exporter
+      get_url:
+        url: https://github.com/leominov/redis_sentinel_exporter/releases/download/v{{ sentinel_exporter_version }}/redis_sentinel_exporter-{{ sentinel_exporter_version }}.linux-amd64.tar.gz
+        dest: /opt/sentinel
+      become: yes
+
+    - name: unarchive sentinel exporter
+      unarchive:
+        remote_src: yes
+        src: /opt/sentinel/redis_sentinel_exporter-{{ sentinel_exporter_version }}.linux-amd64.tar.gz
+        dest: /opt/sentinel
+      become: yes
+
+    - name: Move file sentinel exporter
+      command: mv /opt/sentinel/redis_sentinel_exporter-{{ sentinel_exporter_version }}.linux-amd64/redis_sentinel_exporter /usr/local/bin/
+      become: yes
+
+    - name: install unit file to systemd
+      template:
+        src: sentinel_exporter.j2
+        dest: /etc/systemd/system/sentinel_exporter.service
+      become: yes
+
+    - name: configure systemd to use service
+      systemd:
+        daemon_reload: yes
+        enabled: yes
+        state: started
+        name: sentinel_exporter.service
+      become: yes
+
+    - name: Remove sentinel exporter zip
+      file:
+        path: /opt/sentinel/redis_sentinel_exporter-{{ sentinel_exporter_version }}.linux-amd64.tar.gz
+        state: absent
+      become: yes
+
+    - name: Remove sentinel exporter folder
+      file:
+        path: /opt/sentinel/redis_sentinel_exporter-{{ sentinel_exporter_version }}.linux-amd64
+        state: absent
+      become: yes

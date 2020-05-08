@@ -1,0 +1,10 @@
+[Unit]
+Description=Sentinel Exporter
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=/usr/local/bin/redis_sentinel_exporter
+
+[Install]
+WantedBy=multi-user.target

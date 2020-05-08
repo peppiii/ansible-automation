@@ -1,0 +1,27 @@
+---
+
+- hosts: "{{ hosts | default('jumpbox') }}"
+  gather_facts: yes
+  tasks:
+    - name: test connectionn
+      ping:
+      
+    - name: copy file notify
+      template:
+        src: notify.j2
+        dest: /etc/ssh/notify.sh
+      become: yes
+
+    - name: copy file sshd
+      template:
+        src: sshd.j2
+        dest: /etc/pam.d/sshd
+      become: yes
+    
+    - name: change execute notify
+      shell: chmod +x /etc/ssh/notify.sh
+      
+    - name: test notify slack
+      shell: ./notify.sh
+      args:
+        chdir: /etc/ssh/

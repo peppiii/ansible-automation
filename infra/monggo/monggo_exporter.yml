@@ -1,0 +1,72 @@
+---
+
+- hosts: "{{ hosts | default('jumpbox') }}"
+  vars:
+    mongodb_exporter_version: 0.10.0
+  tasks:
+    - name: test connectionnn
+      ping:
+
+    - name: create group Node exporter
+      become: yes
+      group:
+        name: node_exporter
+        state: present
+
+    - name: create user Node exporter
+      user:
+        name: node_exporter
+        group: node_exporter
+        createhome: no
+        system: yes
+        state: present
+      become: yes
+
+    - name: create opt directory for monggodb
+      file:
+        path: /opt/mongodb
+        state: directory
+      become: yes
+
+    - name: download mongodb exporter
+      get_url:
+        url: https://github.com/percona/mongodb_exporter/releases/download/v{{ mongodb_exporter_version }}/mongodb_exporter-{{ mongodb_exporter_version }}.linux-amd64.tar.gz
+        dest: /opt/mongodb
+      become: yes
+
+    - name: unarchive mongodb exporter
+      unarchive:
+        remote_src: yes
+        src: /opt/mongodb/mongodb_exporter-{{ mongodb_exporter_version }}.linux-amd64.tar.gz
+        dest: /opt/mongodb
+      become: yes
+
+    - name: Move file mongodb exporter
+      command: mv /opt/mongodb/mongodb_exporter /usr/local/bin/
+      become: yes
+
+    - name: install unit file to systemd
+      template:
+        src: mongo_exporter.j2
+        dest: /etc/systemd/system/mongo_exporter.service
+      become: yes
+
+    - name: configure systemd to use service
+      systemd:
+        daemon_reload: yes
+        enabled: yes
+        state: started
+        name: mongo_exporter.service
+      become: yes
+
+    - name: Remove mongodb exporter zip
+      file:
+        path: /opt/mongodb/mongodb_exporter-{{ mongodb_exporter_version }}.linux-amd64.tar.gz
+        state: absent
+      become: yes
+
+    - name: Remove mongodb exporter folder
+      file:
+        path: /opt/mongodb/mongodb_exporter-{{ mongodb_exporter_version }}.linux-amd64
+        state: absent
+      become: yes

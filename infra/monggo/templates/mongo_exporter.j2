@@ -1,0 +1,10 @@
+[Unit]
+Description=MongoDB Exporterr
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=/usr/local/bin/mongodb_exporter
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,79 @@
+---
+
+- hosts: "{{ hosts | default('jumpbox') }}"
+  gather_facts: yes
+  vars:
+    mysql_exporter_version: 0.11.0
+  tasks:
+    - name: test connection aaaaaaaaaaaaa
+      ping:
+
+    - name: create group Node exporter
+      become: yes
+      group:
+        name: node_exporter
+        state: present
+
+    - name: create user Node exporter
+      user:
+        name: node_exporter
+        group: node_exporter
+        createhome: no
+        system: yes
+        state: present
+      become: yes
+
+    - name: create opt directory for mysql
+      file:
+        path: /opt/mysql
+        state: directory
+      become: yes
+
+    - name: download mysql exporter
+      get_url:
+        url: https://github.com/prometheus/mysqld_exporter/releases/download/v{{ mysql_exporter_version }}/mysqld_exporter-{{ mysql_exporter_version }}.linux-amd64.tar.gz
+        dest: /opt/mysql
+      become: yes
+
+    - name: unarchive mysql exporter
+      unarchive:
+        remote_src: yes
+        src: /opt/mysql/mysqld_exporter-{{ mysql_exporter_version }}.linux-amd64.tar.gz
+        dest: /opt/mysql
+      become: yes
+
+    - name: Move file mysql exporter
+      command: mv /opt/mysql/mysqld_exporter-{{ mysql_exporter_version }}.linux-amd64/mysqld_exporter /usr/local/bin/
+      become: yes
+
+    - name: create file cnf in /etc
+      template:
+        src: mysqld_exporter.j2
+        dest: /etc/.mysqld_exporter.cnf
+      become: yes
+
+    - name: install unit file to systemd
+      template:
+        src: mysql_exporter.j2
+        dest: /etc/systemd/system/mysql_exporter.service
+      become: yes
+
+    - name: configure systemd to use service
+      systemd:
+        daemon_reload: yes
+        enabled: yes
+        state: started
+        name: mysql_exporter.service
+      become: yes
+
+    - name: Remove mysql exporter zip
+      file:
+        path: /opt/mysql/mysqld_exporter-{{ mysql_exporter_version }}.linux-amd64.tar.gz
+        state: absent
+      become: yes
+
+    - name: Remove mysql exporter folder
+      file:
+        path: /opt/mysql/mysqld_exporter-{{ mysql_exporter_version }}.linux-amd64
+        state: absent
+      become: yes

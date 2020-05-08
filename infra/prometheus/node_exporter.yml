@@ -1,0 +1,80 @@
+---
+
+- hosts: "{{ hosts | default('jumpbox') }}"
+  gather_facts: yes
+  vars:
+    node_exporter_version: 0.18.1
+  tasks:
+    - name: create group
+      become: yes
+      group:
+        name: node_exporter
+        state: present
+
+    - name: create user
+      user:
+        name: node_exporter
+        group: node_exporter
+        createhome: no
+        system: yes
+        state: present
+      become: yes
+
+    - name: create opt directory for prometheus
+      file:
+        path: /opt/prometheus
+        state: directory
+      become: yes
+
+    - name: download node exporter
+      get_url:
+        url: https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz
+        dest: /opt/prometheus
+      become: yes
+
+    - name: unarchive node exporter
+      unarchive:
+        remote_src: yes
+        src: /opt/prometheus/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz
+        dest: /opt/prometheus
+      become: yes
+
+    - name: move file Node exporter
+      command: mv /opt/prometheus/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter /usr/local/bin
+      become: yes
+      
+    - name: install unit file to systemd
+      template:
+        src: node_exporter.j2
+        dest: /etc/systemd/system/node_exporter.service
+      become: yes
+
+    - name: just force systemd to reread configs
+      systemd:
+        daemon_reload: yes
+
+    - name: enable service node exporter and ensure it is not masked
+      systemd:
+        name: node_exporter.service
+        enabled: yes
+        masked: no
+
+    - name: configure systemd to use service
+      systemd:
+        daemon_reload: yes
+        enabled: yes
+        state: started
+        name: node_exporter.service
+      become: yes
+
+    - name: remove node exporter zip
+      file:
+        path: /opt/prometheus/node_exporter-{{ node_exporter_version}}.linux-amd64.tar.gz
+        state: absent
+      become: yes
+
+    - name: remove node exporter folder
+      file:
+        path: /opt/prometheus/node_exporter-{{ node_exporter_version}}.linux-amd64
+        state: absent
+      become: yes

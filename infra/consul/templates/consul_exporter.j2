@@ -1,0 +1,10 @@
+[Unit]
+Description=Consul Exporter
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=/usr/local/bin/consul_exporter
+
+[Install]
+WantedBy=multi-user.target
